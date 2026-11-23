@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="A practical handbook and interactive workbench for designing safe, reproducible regional browser test fixtures.">
+  <title>Regional Browser Test Fixtures</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <nav class="nav shell" aria-label="Primary navigation">
+      <a class="wordmark" href="#top">RBF<span>/01</span></a>
+      <div><a href="#anatomy">Handbook</a><a href="#builder">Workbench</a><a href="#checklist">Checklist</a></div>
+    </nav>
+    <div class="shell hero-grid" id="top">
+      <div>
+        <p class="kicker">OPEN ENGINEERING HANDBOOK · STATIC EDITION</p>
+        <h1>Regional Browser<br><em>Test Fixtures</em></h1>
+        <p class="lede">Turn geography, browser state, session behavior, and expected market signals into reviewable test data—without putting credentials or customer data in a repository.</p>
+        <a class="button" href="#builder">Compose a fixture <span aria-hidden="true">↓</span></a>
+      </div>
+      <div class="hero-card" aria-label="Fixture summary example">
+        <div class="card-head"><span>fixture.json</span><span class="status">VALID</span></div>
+        <pre><code>{
+  <b>"market"</b>: "DE",
+  <b>"locale"</b>: "de-DE",
+  <b>"timezone"</b>: "Europe/Berlin",
+  <b>"session"</b>: "sticky",
+  <b>"assertions"</b>: [
+    "currency=EUR",
+    "detail=visible"
+  ]
+}</code></pre>
+        <div class="route-line"><i></i><span>route</span><i></i><span>browser</span><i></i><span>assert</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="shell intro" aria-labelledby="why-title">
+      <p class="section-no">00 / WHY</p>
+      <div>
+        <h2 id="why-title">A country is not a complete test case.</h2>
+        <p>A regional page can respond to the network exit, language header, time zone, stored market, account address, delivery postcode, consent state, or a combination of them. If a test changes several inputs without recording them, a failure cannot be reproduced confidently.</p>
+        <p>A fixture is the explicit contract for one scenario. It describes safe inputs, the lifetime of the network session, and observable assertions. The proxy supplies one controlled network vantage point; the fixture makes the rest of the experiment visible.</p>
+      </div>
+    </section>
+
+    <section class="dark" id="anatomy">
+      <div class="shell">
+        <p class="section-no">01 / MODEL</p>
+        <h2>Fixture anatomy</h2>
+        <div class="anatomy-grid">
+          <article><span>01</span><h3>Target</h3><p>Use a permitted test property and the smallest relevant path. Public examples should use reserved domains such as <code>example.test</code>.</p></article>
+          <article><span>02</span><h3>Market inputs</h3><p>Record expected country, locale, time zone, and any synthetic postcode separately. An exit country does not prove the application selected that market.</p></article>
+          <article><span>03</span><h3>Session contract</h3><p>State whether the route remains stable for a journey or rotates between independent cases. Match browser-context lifetime to that boundary.</p></article>
+          <article><span>04</span><h3>Assertions</h3><p>Prefer small observable conditions: final path, currency marker, legal notice, variant state, or delivery promise. Avoid vague “looks right” checks.</p></article>
+          <article><span>05</span><h3>Preflight gate</h3><p>Confirm the observed network country before opening the target. The <a href="https://xtremeproxy.com/tools/proxy-checker">XtremeProxy proxy checker</a> can support a manual setup check; automation should store its own sanitized route result.</p></article>
+          <article><span>06</span><h3>Evidence policy</h3><p>Define what may be retained, for how long, and who reviews it. Screenshots and traces can expose more than the assertion requires.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell sessions" id="sessions">
+      <p class="section-no">02 / BOUNDARIES</p>
+      <h2>Choose a session boundary</h2>
+      <div class="session-table" role="table" aria-label="Session mode comparison">
+        <div class="table-head" role="row"><span role="columnheader">Scenario</span><span role="columnheader">Boundary</span><span role="columnheader">Reason</span></div>
+        <div role="row"><b role="cell">Single-page assertion</b><span role="cell">One fresh context</span><span role="cell">Limits state carried from an earlier market.</span></div>
+        <div role="row"><b role="cell">Browse → cart → delivery</b><span role="cell">Sticky through journey</span><span role="cell">Preserves the identity that owns cookies and cart state.</span></div>
+        <div role="row"><b role="cell">Independent market samples</b><span role="cell">Rotate between cases</span><span role="cell">Keeps each completed observation independent.</span></div>
+        <div role="row"><b role="cell">Session-change regression</b><span role="cell">Deliberate transition</span><span role="cell">Tests the transition itself and labels both phases.</span></div>
+      </div>
+      <aside class="note"><strong>Key rule</strong><p>Do not rotate mid-journey unless the change is the behavior under test. If a route changes unexpectedly, preserve that result and mark the fixture invalid rather than treating the page difference as an application defect.</p></aside>
+    </section>
+
+    <section class="workbench" id="builder">
+      <div class="shell">
+        <p class="section-no">03 / WORKBENCH</p>
+        <div class="workbench-head"><h2>Build a synthetic fixture</h2><p>This browser-only tool creates a safe example. It sends nothing and accepts only <code>example.test</code> targets.</p></div>
+        <div class="builder-grid">
+          <form id="fixture-form" novalidate>
+            <label>Fixture ID<input name="id" value="de-catalog-detail" pattern="[a-z0-9-]+" required></label>
+            <label class="wide">Approved test URL<input name="target" type="url" value="https://shop.example.test/de/product/field-jacket" required></label>
+            <label>Expected market<input name="expectedMarket" value="DE" maxlength="2" required></label>
+            <label>Locale<input name="locale" value="de-DE" required></label>
+            <label>Time zone<input name="timezone" value="Europe/Berlin" required></label>
+            <label>Session mode<select name="sessionMode"><option value="sticky">Sticky journey</option><option value="rotate-between-cases">Rotate between cases</option><option value="single-request">Single request</option></select></label>
+            <label class="wide">Assertions <small>one per line, key=value</small><textarea name="assertions" rows="4">currency=EUR
+product-detail=visible</textarea></label>
+            <button type="submit">Validate fixture</button>
+          </form>
+          <div class="preview">
+            <div class="preview-head"><span>fixture.preview.json</span><button id="copy-button" type="button">Copy</button></div>
+            <pre id="fixture-output" tabindex="0"></pre>
+            <div id="fixture-message" class="message" role="status" aria-live="polite">Ready for validation.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="shell assertions" id="assertions">
+      <p class="section-no">04 / DESIGN</p>
+      <h2>From observation to assertion</h2>
+      <div class="split">
+        <div>
+          <p>Assertions should describe a stable product rule, not an incidental pixel. A regional test can safely compare a documented currency code, final route, consent variant, inventory state, or localized policy marker. Each assertion should have an owner who can explain the expected result.</p>
+          <p>Keep route validation separate from application assertions. A correctly located exit can still reach a broken page; a healthy page can still be observed from the wrong market. Two explicit outcomes make triage faster.</p>
+        </div>
+        <div class="do-dont">
+          <div><span>Prefer</span><code>currency=EUR</code><code>final-path=/de/</code><code>variant=available</code></div>
+          <div><span>Avoid</span><code>page=correct</code><code>everything=localized</code><code>no visual changes</code></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="evidence">
+      <div class="shell evidence-grid">
+        <div>
+          <p class="section-no">05 / OUTPUT</p>
+          <h2>Safe evidence contract</h2>
+          <p>For each run, retain the fixture version, application build, start and end time, sanitized route result, final URL, assertion outcomes, and an error class when applicable. A screenshot should be cropped to the element that supports the finding.</p>
+          <p>Keep credentials, full proxy URLs, cookies, authorization headers, customer records, order details, and unrestricted internal targets out of public artifacts. Use protected runtime configuration for live access and publish only synthetic fixtures.</p>
+        </div>
+        <ol>
+          <li><b>Preflight</b><span>Expected and observed countries align.</span></li>
+          <li><b>Execute</b><span>One fixture owns one clear browser context.</span></li>
+          <li><b>Assert</b><span>Route and application outcomes stay separate.</span></li>
+          <li><b>Sanitize</b><span>Retained evidence matches the declared policy.</span></li>
+          <li><b>Review</b><span>A person checks material regional differences.</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="shell limits" id="limits">
+      <p class="section-no">06 / SCOPE</p>
+      <h2>Limits and responsible use</h2>
+      <div class="split">
+        <div>
+          <p>A proxy controls network origin, not every local condition. It cannot reproduce all devices, carriers, account histories, tax rules, warehouse assignments, or last-mile delivery constraints. One observation supports a bounded finding, not a universal market claim.</p>
+          <p>Test only systems you own or are authorized to assess. Respect applicable terms, privacy duties, rate limits, and access controls. Do not use regional testing to bypass authentication, CAPTCHAs, purchase limits, or geographic restrictions.</p>
+        </div>
+        <div>
+          <p>Select network type and session behavior for the documented test hypothesis. <a href="https://xtremeproxy.com/">XtremeProxy</a> describes available proxy categories and locations, but the test owner remains responsible for permission, browser inputs, pacing, and interpretation.</p>
+          <p>When the result matters, repeat it from a second approved endpoint and correlate it with first-party logs. Preserve contradictory results instead of retrying until a preferred answer appears.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="checklist" id="checklist">
+      <div class="shell">
+        <p class="section-no">07 / REVIEW</p>
+        <h2>Fixture review checklist</h2>
+        <ul>
+          <li>Target ownership or authorization is documented.</li>
+          <li>Market, locale, time zone, and synthetic location inputs are explicit.</li>
+          <li>Session boundary matches the complete user journey.</li>
+          <li>Preflight failure stops application assertions.</li>
+          <li>Assertions are small, observable, and owned.</li>
+          <li>Repository examples contain no credentials or personal data.</li>
+          <li>Retention and manual-review rules are written down.</li>
+          <li>Conclusions state the fixture, time, and known limits.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="shell"><b>Regional Browser Test Fixtures</b><span>Static handbook · Synthetic examples · No data transmitted</span></div></footer>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
